@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lost & Found Management System</title>
+
+<style>
+:root{
+    --primary:#4a6cf7;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --text:#222;
+    --muted:#666;
+    --border:#e1e5f0;
+}
+
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    font-family:"Segoe UI", Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+/* HEADER */
+header{text-align:center;padding:30px 20px 10px}
+header h1{margin:0;font-size:32px}
+header p{color:var(--muted);margin-top:6px}
+
+/* NAV */
+nav{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    padding:20px;
+    flex-wrap:wrap;
+}
+nav button{
+    padding:10px 18px;
+    background:var(--primary);
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+}
+nav button:hover{opacity:0.9}
+
+/* SECTIONS */
+section{
+    display:none;
+    max-width:900px;
+    margin:0 auto 30px;
+    background:var(--card);
+    padding:25px;
+    border-radius:14px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.05);
+}
+section.active{display:block}
+section h2{margin-top:0}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{padding:12px;text-align:left}
+th{background:#f1f3fb;border-bottom:2px solid var(--border)}
+td{border-bottom:1px solid var(--border)}
+tr:hover td{background:#fafbff}
+
+/* FORM */
+label{font-weight:600}
+input, textarea, select{
+    width:100%;
+    padding:10px;
+    margin-top:6px;
+    margin-bottom:16px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    font-size:14px;
+}
+textarea{resize:vertical}
+button.submit{
+    padding:10px 18px;
+    background:var(--primary);
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+button.submit.secondary{background:#6c757d}
+
+/* TAG */
+.tag{
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+}
+.tag.found{background:#e8f0ff;color:#2c4ed8}
+.tag.pending{background:#fff4db;color:#a97400}
+.tag.claimed{background:#e6f7ec;color:#1e7e34}
+.tag.donated{background:#f2f2f2;color:#555}
+
+/* SPINNER */
+.spinner{
+    width:30px;
+    height:30px;
+    border:4px solid #ddd;
+    border-top:4px solid var(--primary);
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    margin:auto;
+}
+@keyframes spin{
+    0%{transform:rotate(0)}
+    100%{transform:rotate(360deg)}
+}
+
+/* TOAST */
+#toast{
+    position:fixed;
+    bottom:30px;
+    right:30px;
+    background:var(--primary);
+    color:white;
+    padding:12px 20px;
+    border-radius:8px;
+    display:none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Lost & Found Management System</h1>
+<p>Report • Claim • Verify • Donate</p>
+</header>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('found')">Report Found</button>
+<button onclick="show('donation')">Donation</button>
+<button id="adminBtn" onclick="openAdmin()" style="display:none;"> Verification Panel </button>
+</nav>
+
+<!-- HOME -->
+<section id="home" class="active">
+<h2>Found Items</h2>
+
+<!-- SEARCH + FILTER -->
+<div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px;">
+<input id="searchInput" placeholder="Search items..." oninput="loadItems()">
+<select id="statusFilter">
+<option value="ALL">All Status</option>
+<option value="FOUND">Found</option>
+<option value="PENDING">Pending</option>
+<option value="CLAIMED">Claimed</option>
+</select>
+</div>
+
+<div id="loader" style="display:none;text-align:center;">
+<div class="spinner"></div>
+</div>
+
+<table>
+<tr>
+
+<th>Image</th>
+<th>Item</th>
+<th>Category</th>
+<th>Description</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+<tbody id="itemsTable"></tbody>
+</table>
+</section>
+
+<!-- FOUND -->
+<section id="found">
+<h2>Report Found Item</h2>
+
+<label>Item Name</label>
+<input id="foundName">
+
+<label>Category</label>
+<select id="foundCategory">
+<option>Electronics</option>
+<option>Personal Belongings</option>
+<option>Clothes</option>
+<option>Documents</option>
+<option>Card</option>
+<option>Box</option>
+<option>Sports Item</option>
+<option>Religious Item</option>
+<option>Miscellaneous</option>
+</select>
+
+<label>Public Description</label>
+<textarea id="publicDesc"></textarea>
+
+<label>Private Description</label>
+<textarea id="privateDesc"></textarea>
+
+<label>Date Found</label>
+<input id="foundDate" type="date">
+
+<button class="submit" onclick="submitFound()">Submit Found Item</button>
+</section>
+
+<!-- CLAIM -->
+<section id="claim">
+<h2>Claim Item</h2>
+<label>Ownership Proof</label>
+<textarea id="claimProof"></textarea>
+<label>Email</label>
+<input id="claimEmail">
+<label>Upload Image</label>
+<input id="claimImage" type="file">
+<button class="submit" onclick="submitClaim()">Submit Claim</button>
+</section>
+
+<!-- DONATION -->
+<section id="donation">
+<h2>Donated Items</h2>
+<table>
+<tr><th>Item</th><th>Description</th><th>Status</th></tr>
+<tbody id="donationTable"></tbody>
+</table>
+</section>
+
+<!-- VERIFY -->
+<section id="verify" style="display: none;">
+<h2>Verification Panel</h2>
+<table>
+<tr><th>Item</th><th>Proof</th><th>Email</th><th>Action</th></tr>
+<tbody id="claimTable"></tbody>
+</table>
+</section>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const isAdmin = params.get("admin");
+
+if (isAdmin === "true") {
+    document.getElementById("verify").style.display = "block";
+}
+</script>
+
+<div id="toast"></div>
+<script>
+const itemsTable=document.getElementById("itemsTable");
+const donationTable=document.getElementById("donationTable");
+const claimTable=document.getElementById("claimTable");
+
+function show(id){
+document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+if(id==="home") loadItems();
+if(id==="donation") loadDonations();
+}
+
+function showToast(msg){
+const t=document.getElementById("toast");
+t.innerText=msg;
+t.style.display="block";
+setTimeout(()=>t.style.display="none",2000);
+}
+
+
+/* LOAD ITEMS */
+async function loadItems() {
+    try {
+
+        const loader = document.getElementById("loader");
+        if (loader) loader.style.display = "block";
+
+        const res = await fetch("/items");
+        const items = await res.json();
+        const searchValue = document.getElementById("searchInput").value.toLowerCase();
+        const selectedStatus = document.getElementById("statusFilter").value;
+        const filteredItems = items.filter(item => {
+    const matchesSearch =
+        item.name?.toLowerCase().includes(searchValue) ||
+        item.category?.toLowerCase().includes(searchValue) ||
+        item.publicDescription?.toLowerCase().includes(searchValue);
+
+    const matchesStatus =
+        selectedStatus === "ALL" || item.status === selectedStatus;
+
+    return matchesSearch && matchesStatus;
+});
+
+        if (loader) loader.style.display = "none";
+
+        if (!items || items.length === 0) {
+            itemsTable.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center;">
+                        No items found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        itemsTable.innerHTML = filteredItems.map(i => `
+            <tr>
+                <td></td>
+                <td>${i.name}</td>
+                <td>${i.category || "-"}</td>
+                <td>${i.publicDescription || "-"}</td>
+                <td><span class="tag ${i.status.toLowerCase()}">${i.status}</span></td>
+                <td>${i.status === "FOUND"
+                    ? `<button onclick="openClaim('${i._id}')">Claim</button>`
+                    : "-"}</td>
+            </tr>
+        `).join("");
+
+    } catch (err) {
+        console.log("Load error:", err);
+        itemsTable.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center;">
+                    Failed to load items
+                </td>
+            </tr>
+        `;
+    }
+}
+
+
+/* SUBMIT FOUND ITEM */
+async function submitFound(){
+
+    const res = await fetch("/found",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json"},
+        body: JSON.stringify({
+            name: document.getElementById("foundName").value,
+            category: document.getElementById("foundCategory").value,
+            publicDescription: document.getElementById("publicDesc").value,
+            privateDescription: document.getElementById("privateDesc").value,
+            dateFound: document.getElementById("foundDate").value
+        })
+    });
+
+    const data = await res.json();
+    console.log("Found response:", data);
+
+    if(data.success){
+        alert("Item Added");
+        loadItems();
+        show("home");
+    } else {
+        alert("Failed to add item");
+    }
+}
+
+
+/* OPEN CLAIM */
+function openClaim(id){
+localStorage.setItem("itemId",id);
+show("claim");
+}
+
+/* SUBMIT CLAIM (IMPORTANT FIX) */
+async function submitClaim(){
+
+    const itemId = localStorage.getItem("itemId");
+    if(!itemId){
+    alert("Item not selected. Please claim from Home page.");
+    show("home");
+    return;
+}
+    const proof = document.getElementById("claimProof").value;
+    const email = document.getElementById("claimEmail").value;
+    const imageFile = document.getElementById("claimImage").files[0];
+
+    const formData = new FormData();
+    formData.append("itemId", itemId);
+    formData.append("proof", proof);
+    formData.append("email", email);
+
+    if(imageFile){
+        formData.append("image", imageFile);
+    }
+
+    const res = await fetch("/claim", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+        showToast("Claim submitted");
+        show("home");
+    }else{
+        alert(data.error || "Claim failed");
+    }
+}
+
+/* DONATIONS */
+async function loadDonations(){
+const res = await fetch("/donations");
+const items=await res.json();
+donationTable.innerHTML=items.map(i=>`
+<tr>
+<td>${i.name}</td>
+<td>${i.publicDescription||"-"}</td>
+<td><span class="tag donated">DONATED</span></td>
+</tr>`).join("");
+}
+
+//FILTER
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const filter = document.getElementById("statusFilter");
+
+    filter.addEventListener("change", function () {
+
+        const selected = this.value;
+
+        // Wait a tiny bit to ensure table is fully rendered
+        setTimeout(() => {
+
+            const rows = document.querySelectorAll("#itemsTable tr");
+
+            rows.forEach(row => {
+                const statusCell = row.querySelector(".tag");
+
+                if (!statusCell) return;
+
+                const status = statusCell.textContent.trim();
+
+                if (selected === "ALL" || status === selected) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+        }, 50); // 50ms delay ensures rows exist
+
+    });
+
+});
+
+//VERIFICATION PANEL
+
+// Show admin button only on localhost
+if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+) {
+    document.getElementById("adminBtn").style.display = "inline-block";
+}
+
+const ADMIN_PASSWORD = "admin123";
+
+function openAdmin(){
+    const password = prompt("Enter Admin Password:");
+    if(password === ADMIN_PASSWORD){
+        show("verify");
+        loadClaims();
+    } else if(password !== null){
+        alert("Incorrect password");
+    }
+}
+
+async function loadClaims(){
+
+    try {
+        const res = await fetch("/admin/claims");
+        const claims = await res.json();
+
+        console.log("Admin claims:", claims);
+
+        if(claims.length === 0){
+            claimTable.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center;">
+                        No pending claims
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        claimTable.innerHTML = claims.map(c => `
+            <tr>
+                <td>${c.itemId?.name || "-"}</td>
+                <td>
+    ${c.proof}
+    ${c.image ? `<br><img src="/uploads/${c.image}" width="120">` : ""}
+</td>
+                <td>${c.email}</td>
+                <td>
+                    <button class="submit" onclick="approveClaim('${c._id}')">
+                        Approve
+                    </button>
+                    <button class="submit secondary" onclick="rejectClaim('${c._id}')">
+                        Reject
+                    </button>
+                </td>
+            </tr>
+        `).join("");
+
+    } catch (err){
+        console.log("Admin load error:", err);
+    }
+}
+
+async function loadAdminImages() {
+    const res = await fetch("/admin/images");
+    const images = await res.json();
+
+    images.forEach((img, index) => {
+        const row = document.querySelectorAll("#claimTable tr")[index + 1];
+        if (row) {
+            const proofCell = row.children[1];
+            proofCell.innerHTML += `<br><img src="/uploads/${img}" width="120" style="margin-top:8px;border-radius:6px;">`;
+        }
+    });
+}
+
+async function approveClaim(id){
+
+    const res = await fetch(`/admin/claim/approve/${id}`,{
+        method:"POST"
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+        showToast("Claim Approved");
+        loadClaims();
+        loadItems();
+    }else{
+        alert("Approval failed");
+    }
+}
+
+async function rejectClaim(id){
+
+    const res = await fetch(`/admin/claim/reject/${id}`,{
+        method:"POST"
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+        showToast("Claim Rejected");
+        loadClaims();
+        loadItems();
+    }else{
+        alert("Reject failed");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadItems();
+});
+</script>
+</body>
+</html>
